@@ -5,8 +5,9 @@ import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
 
-class FirebaseAuthManager(private val context: Context) {
+class FirebaseAuthManager @Inject constructor(private val context: Context) {
     private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
