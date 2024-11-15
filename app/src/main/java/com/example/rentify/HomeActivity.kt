@@ -28,14 +28,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.rentify.add.AddScreen
 import com.example.rentify.add.AddViewModel
@@ -89,7 +87,9 @@ class HomeActivity : ComponentActivity() {
                             }
                             composable(addTab.title) {
                                 val userName by profileViewModel.userName.observeAsState("User")
-                                AddScreen(userName = userName)
+                                AddScreen(onAddItem = { itemName, itemDescription, itemPrice ->
+                                    addViewModel.addItem(itemName, itemDescription, itemPrice)
+                                })
                             }
                             composable(profileTab.title) {
                                 val userName by profileViewModel.userName.observeAsState("User")
@@ -113,18 +113,25 @@ class HomeActivity : ComponentActivity() {
 // reuse this component in any future project
 @Composable
 fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
-    var selectedTabIndex by rememberSaveable {
-        mutableStateOf(0)
-    }
+    // Observing the current destination from NavController
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
+    val selectedTabIndex = tabBarItems.indexOfFirst { it.title == currentDestination }
 
     NavigationBar {
-        // looping over each tab to generate the views and navigation for each item
         tabBarItems.forEachIndexed { index, tabBarItem ->
             NavigationBarItem(
                 selected = selectedTabIndex == index,
                 onClick = {
-                    selectedTabIndex = index
-                    navController.navigate(tabBarItem.title)
+                    if (selectedTabIndex != index) {
+                        navController.navigate(tabBarItem.title) {
+                            // Ensure only a single instance of a destination exists in the back stack
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 },
                 icon = {
                     TabBarIconView(
@@ -135,10 +142,12 @@ fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
                         badgeAmount = tabBarItem.badgeAmount
                     )
                 },
-                label = {Text(tabBarItem.title)})
+                label = { Text(tabBarItem.title) }
+            )
         }
     }
 }
+
 
 // This component helps to clean up the API call from our TabView above,
 // but could just as easily be added inside the TabView without creating this custom component

@@ -73,4 +73,31 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     fun getUserName(): String? {
         return mAuth.currentUser?.displayName
     }
+
+
+    fun addItem(itemName: String, itemDescription: String, itemPrice: String) {
+        val user = mAuth.currentUser
+        if (user != null) {
+            val userId = user.uid
+            val userRef = firestore.collection("users").document(userId)
+
+            val userMap = mapOf(
+                "itemName" to itemName,
+                "itemDescription" to itemDescription,
+                "itemPrice" to itemPrice,
+                "userRef" to userRef
+            )
+
+            firestore.collection("items").document()
+                .set(userMap)
+                .addOnSuccessListener {
+                    Toast.makeText(context, "Item added successful!", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to add item: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+        } else {
+            Toast.makeText(context, "User not authenticated!", Toast.LENGTH_SHORT).show()
+        }
+    }
 }

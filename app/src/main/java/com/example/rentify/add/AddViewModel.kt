@@ -19,4 +19,7 @@ class AddViewModel @Inject constructor(
         _userName.value = firebaseAuthManager.getUserName() ?: "User"
     }
 
+    fun addItem(itemName: String, itemDescription: String, itemPrice: String) {
+        firebaseAuthManager.addItem(itemName, itemDescription, itemPrice)
+    }
 }
