@@ -78,4 +78,6 @@ dependencies {
     implementation("androidx.compose.material:material-android:1.7.5")
     implementation("com.google.dagger:hilt-android:2.51.1")
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    implementation ("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation ("com.google.code.gson:gson:2.10.1")
 }

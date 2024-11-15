@@ -19,7 +19,7 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         mAuth.signOut()
     }
 
-    fun registerUser(username: String, email: String, password: String, location: String, onComplete: (Boolean) -> Unit) {
+    fun registerUser(username: String, email: String, password: String, address: String, latitude: String, longitude: String, onComplete: (Boolean) -> Unit) {
         mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val user = mAuth.currentUser
@@ -30,7 +30,9 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                         val userMap = mapOf(
                             "email" to email,
                             "username" to username,
-                            "location" to location
+                            "address" to address,
+                            "latitude" to latitude,
+                            "longitude" to longitude
                         )
 
                         firestore.collection("users").document(userId)

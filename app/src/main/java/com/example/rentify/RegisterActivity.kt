@@ -1,73 +1,83 @@
 package com.example.rentify
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.rentify.database.FirebaseAuthManager
 import com.example.rentify.ui.theme.RentifyTheme
-import com.example.rentify.utils.LocationHelper
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.Properties
+
 
 class RegisterActivity : ComponentActivity() {
     private lateinit var firebaseAuthManager: FirebaseAuthManager
-    private lateinit var locationHelper: LocationHelper
-    private var userLocation by mutableStateOf("Unknown")
-
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                fetchLocation()
-            } else {
-                Toast.makeText(this@RegisterActivity, "Location permission is required", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-    private fun fetchLocation() {
-        locationHelper.getLastKnownLocation { location ->
-            if (location != null) {
-                userLocation = location
-            } else {
-                Toast.makeText(this@RegisterActivity, "Failed to get location", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+    private var locationIqApiKey: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        locationIqApiKey = loadApiKey()
+
         firebaseAuthManager = FirebaseAuthManager(this)
-        locationHelper = LocationHelper(this)
 
         setContent {
             RentifyTheme {
                 RegisterScreen(
-                    location = userLocation,
-                    onRegister = { username, email, password, location ->
-                        firebaseAuthManager.registerUser(username, email, password, location) { success ->
+                    onRegister = { username, email, password, address, lat, lon ->
+                        firebaseAuthManager.registerUser(username, email, password, address, lat, lon) { success ->
                             if (success) {
                                 finish()
                             }
                         }
                     },
                     onBackPress = { finish() },
-                    onFetchLocation = {
-                        if (locationHelper.checkLocationPermission()) {
-                            fetchLocation()
-                        } else {
-                            requestPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                        }
-                    }
+                    apiKey = locationIqApiKey
                 )
             }
+        }
+    }
+
+    private fun loadApiKey(): String {
+        return try {
+            val properties = Properties()
+            val inputStream = assets.open("secrets.properties")
+            properties.load(inputStream)
+            properties.getProperty("LOCATION_IQ_API_KEY") ?: ""
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
         }
     }
 }
@@ -76,24 +86,23 @@ class RegisterActivity : ComponentActivity() {
 
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    location: String,
-    onRegister: (username: String, email: String, password: String, location: String) -> Unit,
+    onRegister: (username: String, email: String, password: String, address: String, lat: String, lon: String) -> Unit,
     onBackPress: () -> Unit,
-    onFetchLocation: () -> Unit
+    apiKey: String
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var locationState by remember { mutableStateOf(location) }
+    var address by remember { mutableStateOf("") }
+    var lat by remember { mutableStateOf("") }
+    var lon by remember { mutableStateOf("") }
+    var suggestions by remember { mutableStateOf(emptyList<LocationSuggestion>()) }
 
-    LaunchedEffect(location) {
-        locationState = location
-    }
-
-    val isFormValid = username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && locationState != "Unknown"
+    val isFormValid = username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && address.isNotEmpty() && lat.isNotEmpty() && lon.isNotEmpty()
 
     Column(
         modifier = Modifier
@@ -123,28 +132,46 @@ fun RegisterScreen(
             TextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Card(
-                    modifier = Modifier
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = locationState,
-                            style = MaterialTheme.typography.bodyMedium
+            // Address Field with Suggestions
+            TextField(
+                value = address,
+                onValueChange = { query ->
+                    address = query
+                    if (query.isNotEmpty()) {
+                        fetchLocationSuggestions(
+                            query = query,
+                            apiKey = apiKey,
+                            onSuccess = { suggestions = it },
+                            onError = { suggestions = emptyList() }
                         )
+                    } else {
+                        suggestions = emptyList()
                     }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = { onFetchLocation() }) {
-                    Text("Get Location", style = MaterialTheme.typography.bodySmall)
+                },
+                label = { Text("Address") }
+            )
+
+            // Suggestions Dropdown
+            LazyColumn {
+                items(suggestions) { suggestion ->
+                    Text(
+                        text = suggestion.display_name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .clickable {
+                                address = suggestion.display_name
+                                lat = suggestion.lat
+                                lon = suggestion.lon
+                                suggestions = emptyList()  // Clear suggestions on selection
+                            }
+                    )
                 }
             }
 
             if (!isFormValid) {
                 Text(
-                    text = "Please fill in all fields and get a valid location.",
+                    text = "Please fill in all fields.",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp)
@@ -156,7 +183,7 @@ fun RegisterScreen(
             Button(
                 onClick = {
                     if (isFormValid) {
-                        onRegister(username, email, password, locationState)
+                        onRegister(username, email, password, address, lat, lon)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -168,6 +195,49 @@ fun RegisterScreen(
     }
 }
 
+data class LocationSuggestion(
+    val place_id: String,
+    val lat: String,
+    val lon: String,
+    val display_name: String
+)
+
+
+fun fetchLocationSuggestions(
+    query: String,
+    apiKey: String,
+    onSuccess: (List<LocationSuggestion>) -> Unit,
+    onError: (Exception) -> Unit
+) {
+    val client = OkHttpClient()
+    val url = "https://us1.locationiq.com/v1/autocomplete?key=$apiKey&q=$query&limit=3"
+
+    val request = Request.Builder()
+        .url(url)
+        .get()
+        .addHeader("accept", "application/json")
+        .build()
+
+    Thread {
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                val type = object : TypeToken<List<LocationSuggestion>>() {}.type
+                val suggestions: List<LocationSuggestion> = Gson().fromJson(body, type)
+                onSuccess(suggestions)
+            } else {
+                onError(Exception("Failed to fetch suggestions: ${response.message}"))
+            }
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }.start()
+}
+
+
+
+
 
 
 
@@ -176,10 +246,9 @@ fun RegisterScreen(
 fun RegisterScreenPreview() {
     RentifyTheme {
         RegisterScreen(
-            location = "51.229955, 4.416175",
-            onRegister = { _, _, _, _ -> },
-            onBackPress = {  },
-            onFetchLocation = {  }
+            onRegister = { _, _, _, _, _, _ -> },
+            onBackPress = { },
+            apiKey = ""
         )
     }
 }
