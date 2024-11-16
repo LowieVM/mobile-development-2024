@@ -80,4 +80,8 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
     implementation ("com.squareup.okhttp3:okhttp:4.11.0")
     implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("com.google.firebase:firebase-storage-ktx")
+    implementation ("androidx.activity:activity-ktx:1.9.3")
+    implementation ("com.google.accompanist:accompanist-permissions:0.31.5-beta")
+    implementation ("io.coil-kt:coil-compose:2.4.0")
 }

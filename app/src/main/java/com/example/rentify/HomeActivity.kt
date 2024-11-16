@@ -87,8 +87,8 @@ class HomeActivity : ComponentActivity() {
                             }
                             composable(addTab.title) {
                                 val userName by profileViewModel.userName.observeAsState("User")
-                                AddScreen(onAddItem = { itemName, itemDescription, itemPrice ->
-                                    addViewModel.addItem(itemName, itemDescription, itemPrice)
+                                AddScreen(onAddItem = { itemName, itemDescription, itemPrice, imageUri ->
+                                    addViewModel.addItem(itemName, itemDescription, itemPrice, imageUri)
                                 })
                             }
                             composable(profileTab.title) {

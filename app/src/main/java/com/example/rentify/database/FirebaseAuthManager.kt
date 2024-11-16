@@ -1,15 +1,20 @@
 package com.example.rentify.database
 
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
+import java.util.UUID
 import javax.inject.Inject
 
 class FirebaseAuthManager @Inject constructor(private val context: Context) {
     private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 
     fun isUserLoggedIn(): Boolean {
         return mAuth.currentUser != null
@@ -75,21 +80,25 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     }
 
 
-    fun addItem(itemName: String, itemDescription: String, itemPrice: String) {
+    fun addItem(itemName: String, itemDescription: String, itemPrice: String, imageUrl: String?) {
         val user = mAuth.currentUser
         if (user != null) {
             val userId = user.uid
             val userRef = firestore.collection("users").document(userId)
 
-            val userMap = mapOf(
+            val itemMap = mutableMapOf(
                 "itemName" to itemName,
                 "itemDescription" to itemDescription,
                 "itemPrice" to itemPrice,
                 "userRef" to userRef
             )
 
+            imageUrl?.let {
+                itemMap["imageUrl"] = it
+            }
+
             firestore.collection("items").document()
-                .set(userMap)
+                .set(itemMap)
                 .addOnSuccessListener {
                     Toast.makeText(context, "Item added successful!", Toast.LENGTH_SHORT).show()
                 }
@@ -98,6 +107,26 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                 }
         } else {
             Toast.makeText(context, "User not authenticated!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    fun uploadImageToFirebaseStorage(imageUri: Uri, onComplete: (String?) -> Unit) {
+        val user = mAuth.currentUser
+        if (user != null) {
+            val storageRef: StorageReference = storage.reference
+            val imageRef: StorageReference = storageRef.child("images/${UUID.randomUUID()}.jpg")
+            imageRef.putFile(imageUri)
+                .addOnSuccessListener {
+                    imageRef.downloadUrl.addOnSuccessListener { uri ->
+                        onComplete(uri.toString())
+                    }
+                }
+                .addOnFailureListener { e ->
+                    onComplete(null)
+                }
+        } else {
+            onComplete(null)
         }
     }
 }
