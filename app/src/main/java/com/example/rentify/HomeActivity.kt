@@ -37,10 +37,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.rentify.add.AddScreen
 import com.example.rentify.add.AddViewModel
-import com.example.rentify.add.RentScreen
-import com.example.rentify.add.RentViewModel
 import com.example.rentify.profile.ProfileScreen
 import com.example.rentify.profile.ProfileViewModel
+import com.example.rentify.rent.RentScreen
+import com.example.rentify.rent.RentViewModel
 import com.example.rentify.ui.theme.RentifyTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -82,8 +82,7 @@ class HomeActivity : ComponentActivity() {
                     Scaffold(bottomBar = { TabView(tabBarItems, navController) }) {
                         NavHost(navController = navController, startDestination = rentTab.title) {
                             composable(rentTab.title) {
-                                val userName by rentViewModel.userName.observeAsState("User")
-                                RentScreen(userName = userName)
+                                RentScreen(viewModel = rentViewModel)
                             }
                             composable(addTab.title) {
                                 val userName by profileViewModel.userName.observeAsState("User")

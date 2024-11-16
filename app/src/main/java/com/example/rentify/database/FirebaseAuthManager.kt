@@ -79,7 +79,6 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         return mAuth.currentUser?.displayName
     }
 
-
     fun addItem(itemName: String, itemDescription: String, itemPrice: String, imageUrl: String?) {
         val user = mAuth.currentUser
         if (user != null) {
@@ -127,7 +126,6 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         }
     }
 
-
     fun uploadImageToFirebaseStorage(imageUri: Uri, onComplete: (String?) -> Unit) {
         val user = mAuth.currentUser
         if (user != null) {
@@ -146,4 +144,18 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
             onComplete(null)
         }
     }
+
+
+
+    fun fetchAllItems(onComplete: (List<Map<String, Any>>) -> Unit) {
+        firestore.collection("items").get()
+            .addOnSuccessListener { querySnapshot ->
+                val items = querySnapshot.documents.mapNotNull { it.data }
+                onComplete(items)
+            }
+            .addOnFailureListener {
+                onComplete(emptyList())
+            }
+    }
+
 }

@@ -84,4 +84,6 @@ dependencies {
     implementation ("androidx.activity:activity-ktx:1.9.3")
     implementation ("com.google.accompanist:accompanist-permissions:0.31.5-beta")
     implementation ("io.coil-kt:coil-compose:2.4.0")
+    implementation ("com.google.accompanist:accompanist-swiperefresh:0.30.1")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 }
