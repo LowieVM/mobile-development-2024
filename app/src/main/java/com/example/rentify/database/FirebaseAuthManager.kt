@@ -86,25 +86,42 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
             val userId = user.uid
             val userRef = firestore.collection("users").document(userId)
 
-            val itemMap = mutableMapOf(
-                "itemName" to itemName,
-                "itemDescription" to itemDescription,
-                "itemPrice" to itemPrice,
-                "userRef" to userRef
-            )
+            // Fetch user data (including latitude and longitude)
+            userRef.get().addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val latitude = document.getString("latitude") ?: ""
+                    val longitude = document.getString("longitude") ?: ""
 
-            imageUrl?.let {
-                itemMap["imageUrl"] = it
+                    // Create the item data map
+                    val itemMap = mutableMapOf(
+                        "itemName" to itemName,
+                        "itemDescription" to itemDescription,
+                        "itemPrice" to itemPrice,
+                        "userRef" to userRef,
+                        "latitude" to latitude,
+                        "longitude" to longitude
+                    )
+
+                    // Add image URL if provided
+                    imageUrl?.let {
+                        itemMap["imageUrl"] = it
+                    }
+
+                    // Save the item to Firestore
+                    firestore.collection("items").document()
+                        .set(itemMap)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Item added successfully!", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Failed to add item: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                } else {
+                    Toast.makeText(context, "User data not found", Toast.LENGTH_LONG).show()
+                }
+            }.addOnFailureListener { e ->
+                Toast.makeText(context, "Failed to retrieve user data: ${e.message}", Toast.LENGTH_LONG).show()
             }
-
-            firestore.collection("items").document()
-                .set(itemMap)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Item added successful!", Toast.LENGTH_SHORT).show()
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(context, "Failed to add item: ${e.message}", Toast.LENGTH_LONG).show()
-                }
         } else {
             Toast.makeText(context, "User not authenticated!", Toast.LENGTH_SHORT).show()
         }
