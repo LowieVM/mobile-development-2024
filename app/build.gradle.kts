@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.play.services.location)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -86,4 +87,5 @@ dependencies {
     implementation ("io.coil-kt:coil-compose:2.4.0")
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.30.1")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation ("androidx.compose.material3:material3:1.3.1")
 }

@@ -2,6 +2,7 @@ package com.example.rentify
 
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -57,6 +58,7 @@ class HomeActivity : ComponentActivity() {
     private val addViewModel: AddViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
 
+    private val context: Context = this
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +84,7 @@ class HomeActivity : ComponentActivity() {
                     Scaffold(bottomBar = { TabView(tabBarItems, navController) }) {
                         NavHost(navController = navController, startDestination = rentTab.title) {
                             composable(rentTab.title) {
-                                RentScreen(viewModel = rentViewModel)
+                                RentScreen(viewModel = rentViewModel, context = context)
                             }
                             composable(addTab.title) {
                                 val userName by profileViewModel.userName.observeAsState("User")

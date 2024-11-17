@@ -150,12 +150,78 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     fun fetchAllItems(onComplete: (List<Map<String, Any>>) -> Unit) {
         firestore.collection("items").get()
             .addOnSuccessListener { querySnapshot ->
-                val items = querySnapshot.documents.mapNotNull { it.data }
+                val items = querySnapshot.documents.mapNotNull { document ->
+                    val data = document.data
+                    if (data != null) {
+                        // Add the document ID to the map
+                        data["documentId"] = document.id
+                        data
+                    } else {
+                        null
+                    }
+                }
                 onComplete(items)
             }
             .addOnFailureListener {
                 onComplete(emptyList())
             }
     }
+
+    fun rentItem(documentId: String, dates: Map<String, Boolean>, onComplete: (Boolean) -> Unit) {
+        val user = mAuth.currentUser
+        if (user != null) {
+            val userRef = firestore.collection("users").document(user.uid)
+            val itemRef = firestore.collection("items").document(documentId)
+
+            // Extract the keys (dates) from the dates map
+            val dateArray = dates.keys.toList()
+
+            // Create a rental data map
+            val rentalData = mapOf(
+                "itemRef" to itemRef,
+                "userRef" to userRef,
+                "dates" to dateArray
+            )
+
+            // Save the rental document to Firestore
+            firestore.collection("rentals").document()
+                .set(rentalData)
+                .addOnSuccessListener {
+                    Toast.makeText(context, "Item rented successfully!", Toast.LENGTH_SHORT).show()
+                    onComplete(true)
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to rent item: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+        } else {
+            Toast.makeText(context, "User not authenticated!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun fetchDatesFromItem(documentId: String?, onComplete: (List<String>) -> Unit) {
+        if (documentId != null) {
+            val itemRef = firestore.collection("items").document(documentId)
+
+            firestore.collection("rentals")
+                .whereEqualTo("itemRef", itemRef)
+                .get()
+                .addOnSuccessListener { querySnapshot ->
+                    // Collect all dates from the rental documents
+                    val dates = mutableSetOf<String>()
+                    for (document in querySnapshot.documents) {
+                        val rentedDates = document.get("dates") as? List<String>
+                        rentedDates?.let {
+                            dates.addAll(it)
+                        }
+                    }
+                    onComplete(dates.toList())
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to fetch dates: ${e.message}", Toast.LENGTH_LONG).show()
+                    onComplete(emptyList())
+                }
+        }
+    }
+
 
 }

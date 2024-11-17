@@ -1,5 +1,8 @@
 package com.example.rentify.rent
 
+import android.content.Context
+import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +42,7 @@ import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun RentScreen(viewModel: RentViewModel = viewModel()) {
+fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
     val items = viewModel.items.observeAsState(initial = emptyList())
     val state by viewModel.state
     val pullRefreshState = rememberPullRefreshState(
@@ -68,11 +71,19 @@ fun RentScreen(viewModel: RentViewModel = viewModel()) {
                 ) {
                     items(items.value.size) { index ->
                         val item = items.value[index]
-                        ItemCard(item = item)
+                        ItemCard(item = item, onClick = {
+                            // Start the activity and pass the item data
+                            val intent = Intent(context, RentItemActivity::class.java)
+                            intent.putExtra("itemName", item["itemName"] as? String ?: "")
+                            intent.putExtra("itemPrice", item["itemPrice"] as? String ?: "")
+                            intent.putExtra("itemDescription", item["itemDescription"] as? String ?: "")
+                            intent.putExtra("imageUrl", item["imageUrl"] as? String ?: "")
+                            intent.putExtra("documentId", item["documentId"] as? String ?: "")
+                            context.startActivity(intent)
+                        })
                     }
                 }
 
-                // Add extra space at the bottom of the screen
                 Spacer(modifier = Modifier.height(80.dp)) // Adjust the height as needed
             }
 
@@ -86,11 +97,12 @@ fun RentScreen(viewModel: RentViewModel = viewModel()) {
 }
 
 @Composable
-fun ItemCard(item: Map<String, Any>) {
+fun ItemCard(item: Map<String, Any>, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable { onClick() }, // Make the card clickable
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
