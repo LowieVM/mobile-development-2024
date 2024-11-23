@@ -27,8 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
@@ -40,6 +38,7 @@ import com.example.rentify.add.AddScreen
 import com.example.rentify.add.AddViewModel
 import com.example.rentify.profile.ProfileScreen
 import com.example.rentify.profile.ProfileViewModel
+import com.example.rentify.profile.RentedItemsActivity
 import com.example.rentify.rent.RentScreen
 import com.example.rentify.rent.RentViewModel
 import com.example.rentify.ui.theme.RentifyTheme
@@ -87,14 +86,20 @@ class HomeActivity : ComponentActivity() {
                                 RentScreen(viewModel = rentViewModel, context = context)
                             }
                             composable(addTab.title) {
-                                val userName by profileViewModel.userName.observeAsState("User")
                                 AddScreen(onAddItem = { itemName, itemDescription, itemPrice, imageUri ->
                                     addViewModel.addItem(itemName, itemDescription, itemPrice, imageUri)
                                 })
                             }
                             composable(profileTab.title) {
-                                val userName by profileViewModel.userName.observeAsState("User")
-                                ProfileScreen(userName = userName, onLogoutClicked = {
+                                ProfileScreen(onLogoutClicked = {
+                                    profileViewModel.logoutUser()
+                                    val intent = Intent(this@HomeActivity, MainActivity::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }, onRentedItemsClicked = {
+                                    val intent = Intent(context, RentedItemsActivity::class.java)
+                                    startActivity(intent)
+                                }, onYourItemsClicked = {
                                     profileViewModel.logoutUser()
                                     val intent = Intent(this@HomeActivity, MainActivity::class.java)
                                     startActivity(intent)

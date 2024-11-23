@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -166,6 +167,48 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                 onComplete(emptyList())
             }
     }
+
+    fun fetchUserRentedItems(onComplete: (List<Map<String, Any>>) -> Unit) {
+        val currentUser = mAuth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+            onComplete(emptyList())
+            return
+        }
+
+        val userRef = firestore.collection("users").document(currentUser.uid)
+
+        // Query rentals collection where userRef matches the logged-in user
+        firestore.collection("rentals")
+            .whereEqualTo("userRef", userRef)
+            .get()
+            .addOnSuccessListener { rentalSnapshot ->
+                val itemRefs = rentalSnapshot.documents.mapNotNull { it.getDocumentReference("itemRef") }
+
+                if (itemRefs.isEmpty()) {
+                    onComplete(emptyList())
+                    return@addOnSuccessListener
+                }
+
+                // Fetch details of items referenced by itemRefs
+                firestore.collection("items")
+                    .whereIn(FieldPath.documentId(), itemRefs.map { it.id })
+                    .get()
+                    .addOnSuccessListener { itemsSnapshot ->
+                        val items = itemsSnapshot.documents.mapNotNull { it.data?.apply { put("documentId", it.id) } }
+                        onComplete(items)
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, "Failed to fetch item details", Toast.LENGTH_LONG).show()
+                        onComplete(emptyList())
+                    }
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Failed to fetch rentals", Toast.LENGTH_LONG).show()
+                onComplete(emptyList())
+            }
+    }
+
 
     fun rentItem(documentId: String, dates: Map<String, Boolean>, onComplete: (Boolean) -> Unit) {
         val user = mAuth.currentUser
