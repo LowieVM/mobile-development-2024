@@ -76,10 +76,6 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
             }
     }
 
-    fun getUserName(): String? {
-        return mAuth.currentUser?.displayName
-    }
-
     fun addItem(itemName: String, itemDescription: String, itemPrice: String, imageUrl: String?) {
         val user = mAuth.currentUser
         if (user != null) {
@@ -164,6 +160,32 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                 onComplete(items)
             }
             .addOnFailureListener {
+                onComplete(emptyList())
+            }
+    }
+
+
+
+    fun fetchUserItems(onComplete: (List<Map<String, Any>>) -> Unit) {
+        val currentUser = mAuth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+            onComplete(emptyList())
+            return
+        }
+
+        val userRef = firestore.collection("users").document(currentUser.uid)
+
+        // Query items collection where 'owner' matches the logged-in user's reference
+        firestore.collection("items")
+            .whereEqualTo("userRef", userRef)
+            .get()
+            .addOnSuccessListener { itemsSnapshot ->
+                val items = itemsSnapshot.documents.mapNotNull { it.data?.apply { put("documentId", it.id) } }
+                onComplete(items)
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Failed to fetch user items", Toast.LENGTH_LONG).show()
                 onComplete(emptyList())
             }
     }

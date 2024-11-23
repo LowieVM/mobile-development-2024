@@ -8,7 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import com.example.rentify.database.FirebaseAuthManager
 import com.example.rentify.shared.CalendarAndItemsScreen
 
-class RentedItemsActivity : ComponentActivity() {
+class MyItemsActivity : ComponentActivity() {
     private lateinit var firebaseAuthManager: FirebaseAuthManager
 
     private val _items = MutableLiveData<List<Map<String, Any>>>()
@@ -24,7 +24,7 @@ class RentedItemsActivity : ComponentActivity() {
 
         setContent {
             CalendarAndItemsScreen(
-                title = "Rented items",
+                title = "Your items",
                 rentedItems = items,
                 rentedDates = rentedDates,
                 onFetchDatesForItem = { documentId ->
@@ -36,7 +36,7 @@ class RentedItemsActivity : ComponentActivity() {
     }
 
     private fun fetchItems() {
-        firebaseAuthManager.fetchUserRentedItems { fetchedItems ->
+        firebaseAuthManager.fetchUserItems { fetchedItems ->
             _items.postValue(fetchedItems)
         }
     }
@@ -51,3 +51,4 @@ class RentedItemsActivity : ComponentActivity() {
         }
     }
 }
+

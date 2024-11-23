@@ -36,6 +36,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.rentify.add.AddScreen
 import com.example.rentify.add.AddViewModel
+import com.example.rentify.profile.MyItemsActivity
 import com.example.rentify.profile.ProfileScreen
 import com.example.rentify.profile.ProfileViewModel
 import com.example.rentify.profile.RentedItemsActivity
@@ -100,10 +101,8 @@ class HomeActivity : ComponentActivity() {
                                     val intent = Intent(context, RentedItemsActivity::class.java)
                                     startActivity(intent)
                                 }, onYourItemsClicked = {
-                                    profileViewModel.logoutUser()
-                                    val intent = Intent(this@HomeActivity, MainActivity::class.java)
+                                    val intent = Intent(context, MyItemsActivity::class.java)
                                     startActivity(intent)
-                                    finish()
                                 })
                             }
                         }
