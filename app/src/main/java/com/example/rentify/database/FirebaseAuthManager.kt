@@ -93,6 +93,7 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                         "itemName" to itemName,
                         "itemDescription" to itemDescription,
                         "itemPrice" to itemPrice,
+                        "category" to category,
                         "userRef" to userRef,
                         "latitude" to latitude,
                         "longitude" to longitude
