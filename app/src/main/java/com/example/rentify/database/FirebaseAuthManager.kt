@@ -25,6 +25,10 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         mAuth.signOut()
     }
 
+    fun getCurrentUserId(): String? {
+        return FirebaseAuth.getInstance().currentUser?.uid
+    }
+
     fun registerUser(username: String, email: String, password: String, address: String, latitude: String, longitude: String, onComplete: (Boolean) -> Unit) {
         mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
             if (task.isSuccessful) {

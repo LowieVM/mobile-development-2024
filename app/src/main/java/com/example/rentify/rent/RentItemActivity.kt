@@ -1,5 +1,6 @@
 package com.example.rentify.rent
 
+import android.app.AlertDialog
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,6 +51,9 @@ class RentItemActivity : ComponentActivity() {
         val itemDescription = intent.getStringExtra("itemDescription")
         val imageUrl = intent.getStringExtra("imageUrl")
         val documentId = intent.getStringExtra("documentId")
+        val ownerId = intent.getStringExtra("ownerId") // Assume ownerId is passed
+
+        val currentUserId = firebaseAuthManager.getCurrentUserId()
 
 
         // Create a mutable state map for disabled dates
@@ -73,9 +77,33 @@ class RentItemActivity : ComponentActivity() {
                 documentId = documentId ?: "",
                 onBackPress = { finish() },
                 onRentItem = { documentId, dates ->
-                    firebaseAuthManager.rentItem(documentId, dates) { success ->
-                        if (success) {
-                            finish()
+                    if (currentUserId == ownerId) {
+                        // Show dialog if the current user is the owner
+                        // Show a confirmation dialog to warn the user that they are renting their own item
+                        val dialog = AlertDialog.Builder(this)
+                            .setTitle("Warning")
+                            .setMessage("You are the owner of this item. Are you sure you want to rent your own item?")
+                            .setPositiveButton("OK") { dialog, _ ->
+                                // Proceed with renting
+                                firebaseAuthManager.rentItem(documentId, dates) { success ->
+                                    if (success) {
+                                        finish()
+                                    }
+                                }
+                                dialog.dismiss()
+                            }
+                            .setNegativeButton("Cancel") { dialog, _ ->
+                                dialog.dismiss()
+                            }
+                            .create()
+
+                        dialog.show()
+                    } else {
+                        // Proceed with renting
+                        firebaseAuthManager.rentItem(documentId, dates) { success ->
+                            if (success) {
+                                finish()
+                            }
                         }
                     }
                 },
@@ -100,7 +128,6 @@ fun RentItemScreen(
 
     var lastSelectedDate by remember { mutableStateOf<String?>(null) }
     val selectedDates = remember { mutableStateMapOf<String, Boolean>() }
-    //val disabledDates = remember { mutableStateMapOf<String, Boolean>() }
 
 
     Scaffold(

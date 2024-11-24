@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.rentify.shared.ItemCard
+import com.google.firebase.firestore.DocumentReference
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -144,6 +145,11 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
                 ) {
                     items(filteredItems.size) { index ->
                         val item = filteredItems[index]
+                        val ownerRef = item["userRef"] as? DocumentReference
+
+                        val ownerId = ownerRef?.id
+                        println(ownerId)
+
                         ItemCard(item = item, onClick = {
                             // Start the activity and pass the item data
                             val intent = Intent(context, RentItemActivity::class.java)
@@ -152,6 +158,9 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
                             intent.putExtra("itemDescription", item["itemDescription"] as? String ?: "")
                             intent.putExtra("imageUrl", item["imageUrl"] as? String ?: "")
                             intent.putExtra("documentId", item["documentId"] as? String ?: "")
+
+                            // Pass the ownerId to the RentItemActivity
+                            intent.putExtra("ownerId", ownerId ?: "") // Default to empty if ownerId is null
                             context.startActivity(intent)
                         })
                     }
