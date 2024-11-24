@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,14 +55,13 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
     var isDropdownExpanded by remember { mutableStateOf(false) }
     val categories = listOf("All Categories", "Bouwgereedschap", "Keukenapparatuur", "Schoonmaakapparatuur", "Transportbenodigdheden", "Tuinbenodigdheden")
     var selectedCategory by remember { mutableStateOf("All Categories") }
+    var searchQuery by remember { mutableStateOf("") }
 
-    val filteredItems = if (selectedCategory != "All Categories") {
-        items.value.filter { item ->
-            val itemCategory = item["category"] as? String ?: ""
-            itemCategory == selectedCategory
-        }
-    } else {
-        items.value // Show all items if "All Categories" is selected
+    val filteredItems = items.value.filter { item ->
+        val itemCategory = item["category"] as? String ?: ""
+        val itemName = item["itemName"] as? String ?: ""
+        (selectedCategory == "All Categories" || itemCategory == selectedCategory) &&
+                itemName.contains(searchQuery, ignoreCase = true)
     }
 
     Scaffold(
@@ -74,6 +74,15 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
                 .pullRefresh(pullRefreshState)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search items") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
