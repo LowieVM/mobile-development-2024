@@ -11,16 +11,16 @@ class AddViewModel @Inject constructor(
     private val firebaseAuthManager: FirebaseAuthManager
 ) : ViewModel() {
 
-    fun addItem(itemName: String, itemDescription: String, itemPrice: String, imageUri: Uri?) {
+    fun addItem(itemName: String, itemDescription: String, itemPrice: String, category: String, imageUri: Uri?) {
         if (imageUri != null) {
             firebaseAuthManager.uploadImageToFirebaseStorage(imageUri) { imageUrl ->
                 if (imageUrl != null) {
-                    firebaseAuthManager.addItem(itemName, itemDescription, itemPrice, imageUrl)
+                    firebaseAuthManager.addItem(itemName, itemDescription, itemPrice, category, imageUrl)
                 } else {
                 }
             }
         } else {
-            firebaseAuthManager.addItem(itemName, itemDescription, itemPrice, null)
+            firebaseAuthManager.addItem(itemName, itemDescription, itemPrice, category, null)
         }
     }
 }

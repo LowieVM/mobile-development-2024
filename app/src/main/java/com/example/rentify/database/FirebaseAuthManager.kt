@@ -76,7 +76,7 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
             }
     }
 
-    fun addItem(itemName: String, itemDescription: String, itemPrice: String, imageUrl: String?) {
+    fun addItem(itemName: String, itemDescription: String, itemPrice: String, category: String, imageUrl: String?) {
         val user = mAuth.currentUser
         if (user != null) {
             val userId = user.uid

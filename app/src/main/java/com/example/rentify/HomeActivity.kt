@@ -87,8 +87,8 @@ class HomeActivity : ComponentActivity() {
                                 RentScreen(viewModel = rentViewModel, context = context)
                             }
                             composable(addTab.title) {
-                                AddScreen(onAddItem = { itemName, itemDescription, itemPrice, imageUri ->
-                                    addViewModel.addItem(itemName, itemDescription, itemPrice, imageUri)
+                                AddScreen(onAddItem = { itemName, itemDescription, itemPrice, category, imageUri ->
+                                    addViewModel.addItem(itemName, itemDescription, itemPrice, category, imageUri)
                                 })
                             }
                             composable(profileTab.title) {
