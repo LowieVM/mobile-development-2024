@@ -289,5 +289,39 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         }
     }
 
+    fun fetchDatesFromRentedItem(documentId: String?, onComplete: (List<String>) -> Unit) {
+        val currentUser = mAuth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+            onComplete(emptyList())
+            return
+        }
+
+        if (documentId != null) {
+            val itemRef = firestore.collection("items").document(documentId)
+            val userRef = firestore.collection("users").document(currentUser.uid)
+
+            firestore.collection("rentals")
+                .whereEqualTo("itemRef", itemRef) // Filter by item
+                .whereEqualTo("userRef", userRef) // Filter by current user
+                .get()
+                .addOnSuccessListener { querySnapshot ->
+                    // Collect all dates from the rental documents
+                    val dates = mutableSetOf<String>()
+                    for (document in querySnapshot.documents) {
+                        val rentedDates = document.get("dates") as? List<String>
+                        rentedDates?.let {
+                            dates.addAll(it)
+                        }
+                    }
+                    onComplete(dates.toList())
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to fetch dates: ${e.message}", Toast.LENGTH_LONG).show()
+                    onComplete(emptyList())
+                }
+        }
+    }
+
 
 }

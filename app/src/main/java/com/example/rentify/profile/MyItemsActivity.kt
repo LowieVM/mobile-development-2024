@@ -3,10 +3,12 @@ package com.example.rentify.profile
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.rentify.database.FirebaseAuthManager
 import com.example.rentify.shared.CalendarAndItemsScreen
+import com.example.rentify.shared.NoItemsScreen
 
 class MyItemsActivity : ComponentActivity() {
     private lateinit var firebaseAuthManager: FirebaseAuthManager
@@ -16,6 +18,7 @@ class MyItemsActivity : ComponentActivity() {
 
     private val _rentedDates = MutableLiveData<MutableMap<String, Boolean>>()
     private val rentedDates: LiveData<MutableMap<String, Boolean>> get() = _rentedDates
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         firebaseAuthManager = FirebaseAuthManager(this)
@@ -23,15 +26,21 @@ class MyItemsActivity : ComponentActivity() {
         fetchItems()
 
         setContent {
-            CalendarAndItemsScreen(
-                title = "Your items",
-                rentedItems = items,
-                rentedDates = rentedDates,
-                onFetchDatesForItem = { documentId ->
-                    fetchDatesForItem(documentId)
-                },
-                onBackPress = { finish() }
-            )
+            val itemsState = items.observeAsState(emptyList()) // Observe items LiveData
+
+            if (itemsState.value.isEmpty()) {
+                NoItemsScreen("Your items", "You have no items. Add items to view them here.", onBackPress = { finish() }) // Pass back action to composable
+            } else {
+                CalendarAndItemsScreen(
+                    title = "Your items",
+                    rentedItems = items,
+                    rentedDates = rentedDates,
+                    onFetchDatesForItem = { documentId ->
+                        fetchDatesForItem(documentId)
+                    },
+                    onBackPress = { finish() }
+                )
+            }
         }
     }
 
