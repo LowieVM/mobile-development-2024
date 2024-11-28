@@ -88,4 +88,5 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.30.1")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation ("androidx.compose.material3:material3:1.3.1")
+    implementation ("org.osmdroid:osmdroid-android:6.1.20")
 }

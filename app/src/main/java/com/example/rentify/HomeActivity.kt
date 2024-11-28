@@ -44,6 +44,7 @@ import com.example.rentify.rent.RentScreen
 import com.example.rentify.rent.RentViewModel
 import com.example.rentify.ui.theme.RentifyTheme
 import dagger.hilt.android.AndroidEntryPoint
+import org.osmdroid.config.Configuration
 
 data class TabBarItem(
     val title: String,
@@ -62,6 +63,8 @@ class HomeActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().load(this, applicationContext.getSharedPreferences("osmdroid", MODE_PRIVATE))
 
         setContent {
             // setting up the individual tabs
