@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -79,6 +81,8 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
     var selectedCategory by remember { mutableStateOf("All Categories") }
     var searchQuery by remember { mutableStateOf("") }
     var radiusInKm by remember { mutableFloatStateOf(30f) } // Default radius
+
+    var isMapVisible by remember { mutableStateOf(false) } // State to track map visibility
 
 
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -139,82 +143,100 @@ fun RentScreen(viewModel: RentViewModel = viewModel(), context: Context) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Radius: ${radiusInKm.toInt()} km")
-                    androidx.compose.material3.Slider(
-                        value = radiusInKm,
-                        onValueChange = {
-                            radiusInKm = it
-                        },
-                        valueRange = 1f..150f, // 1 km to 50 km
-                        steps = 149 // Optional, 1 step per km
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Distance: ${radiusInKm.toInt()} km", modifier = Modifier.weight(1f))
+
+                        // Add the IconButton to toggle map visibility
+                        androidx.compose.material3.IconButton(
+                            onClick = { isMapVisible = !isMapVisible }
+                        ) {
+                            Icon(
+                                imageVector = if (isMapVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isMapVisible) "Hide Map" else "Show Map"
+                            )
+                        }
+                    }
+                    if (isMapVisible) {
+                        androidx.compose.material3.Slider(
+                            value = radiusInKm,
+                            onValueChange = {
+                                radiusInKm = it
+                            },
+                            valueRange = 1f..150f, // 1 km to 50 km
+                            steps = 149 // Optional, 1 step per km
+                        )
+                    }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .padding(8.dp)
-                        .graphicsLayer { clip = true }
-                ) {
-                    AndroidView(
-                        factory = { context ->
-                            // Create the MapView
-                            MapView(context).apply {
-                                setTileSource(TileSourceFactory.MAPNIK)
-                                setMultiTouchControls(true)
-                                zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+                if (isMapVisible) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(8.dp)
+                            .graphicsLayer { clip = true }
+                    ) {
+                        AndroidView(
+                            factory = { context ->
+                                // Create the MapView
+                                MapView(context).apply {
+                                    setTileSource(TileSourceFactory.MAPNIK)
+                                    setMultiTouchControls(true)
+                                    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
 
-                                // Center the map on a default location
-                                controller.setZoom(10.0)
-                                controller.setCenter(centerGeoPoint)
-                            }
-                        },
-                        update = { mapView ->
-                            // Ensure markers are added when the MapView is ready
-                            mapView.apply {
-                                // Clear existing markers to avoid duplicates on re-render
-                                overlays.clear()
-                                overlays.add(CircleOverlay(centerGeoPoint, radiusInKm * 1000.0)) // Re-add the circle overlay
-                                controller.setZoom(-1.4412287385975584 * ln(40.46204143949824 * radiusInKm) + 20.31274055274244)
-                                controller.setCenter(centerGeoPoint)
-
-                                val smallMarkerPinIcon = resizeDrawable(context, R.drawable.red_marker, 24, 24)
-                                val smallMarkerHomeIcon = resizeDrawable(context, R.drawable.cyan_home, 20, 20)
-
-                                val homeMarker = Marker(this)
-                                homeMarker.position = centerGeoPoint
-                                homeMarker.title = "Home"
-                                homeMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-
-                                homeMarker.icon = smallMarkerHomeIcon
-
-                                overlays.add(homeMarker) // Add marker to the map
-
-
-                                filteredItems.groupBy { item ->
-                                    val lat = (item["latitude"] as? String ?: "0.0").toDouble()
-                                    val lon = (item["longitude"] as? String ?: "0.0").toDouble()
-                                    GeoPoint(lat, lon)
-                                }.forEach { (location, itemsAtLocation) ->
-                                    if (location == centerGeoPoint) {
-                                        return@forEach
-                                    }
-                                    val marker = Marker(mapView)
-                                    marker.position = location
-                                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                    marker.icon = smallMarkerPinIcon
-
-                                    val title = itemsAtLocation.joinToString(separator = "aaaaaaaaaaaaaaaaaaaaaaa\n") { item ->
-                                        item["itemName"] as? String ?: "Unknown Item"
-                                    }
-                                    marker.title = title
-                                    overlays.add(marker)
+                                    // Center the map on a default location
+                                    controller.setZoom(10.0)
+                                    controller.setCenter(centerGeoPoint)
                                 }
-                                invalidate() // Trigger a redraw of the map
+                            },
+                            update = { mapView ->
+                                // Ensure markers are added when the MapView is ready
+                                mapView.apply {
+                                    // Clear existing markers to avoid duplicates on re-render
+                                    overlays.clear()
+                                    overlays.add(CircleOverlay(centerGeoPoint, radiusInKm * 1000.0)) // Re-add the circle overlay
+                                    controller.setZoom(-1.4412287385975584 * ln(40.46204143949824 * radiusInKm) + 20.31274055274244)
+                                    controller.setCenter(centerGeoPoint)
+
+                                    val smallMarkerPinIcon = resizeDrawable(context, R.drawable.red_marker, 24, 24)
+                                    val smallMarkerHomeIcon = resizeDrawable(context, R.drawable.cyan_home, 20, 20)
+
+                                    val homeMarker = Marker(this)
+                                    homeMarker.position = centerGeoPoint
+                                    homeMarker.title = "Home"
+                                    homeMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+
+                                    homeMarker.icon = smallMarkerHomeIcon
+
+                                    overlays.add(homeMarker) // Add marker to the map
+
+                                    filteredItems.groupBy { item ->
+                                        val lat = (item["latitude"] as? String ?: "0.0").toDouble()
+                                        val lon = (item["longitude"] as? String ?: "0.0").toDouble()
+                                        GeoPoint(lat, lon)
+                                    }.forEach { (location, itemsAtLocation) ->
+                                        if (location == centerGeoPoint) {
+                                            return@forEach
+                                        }
+                                        val marker = Marker(mapView)
+                                        marker.position = location
+                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                        marker.icon = smallMarkerPinIcon
+
+                                        val title = itemsAtLocation.joinToString(separator = "\n") { item ->
+                                            item["itemName"] as? String ?: "Unknown Item"
+                                        }
+                                        marker.title = title
+                                        overlays.add(marker)
+                                    }
+                                    invalidate() // Trigger a redraw of the map
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
 
 
