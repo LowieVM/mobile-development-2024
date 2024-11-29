@@ -1,16 +1,38 @@
 package com.example.rentify.database
 
+//import com.google.api.client.auth.openidconnect.HttpTransportFactory
+
+import android.app.NotificationManager
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.IOException
+import java.io.InputStream
 import java.util.UUID
 import javax.inject.Inject
+
 
 class FirebaseAuthManager @Inject constructor(private val context: Context) {
     private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -18,6 +40,16 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 
     fun isUserLoggedIn(): Boolean {
+        FirebaseMessaging.getInstance().token
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    val user = mAuth.currentUser
+                    user?.let {
+                        firestore.collection("users").document(it.uid).update("fcmToken", token)
+                    }
+                }
+            }
         return mAuth.currentUser != null
     }
 
@@ -72,6 +104,16 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
+                    FirebaseMessaging.getInstance().token
+                        .addOnCompleteListener { task2 ->
+                            if (task2.isSuccessful) {
+                                val token = task2.result
+                                val user = mAuth.currentUser
+                                user?.let {
+                                    firestore.collection("users").document(it.uid).update("fcmToken", token)
+                                }
+                            }
+                        }
                     onComplete(true)
                 } else {
                     Toast.makeText(context, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
@@ -258,6 +300,30 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                 .set(rentalData)
                 .addOnSuccessListener {
                     Toast.makeText(context, "Item rented successfully!", Toast.LENGTH_SHORT).show()
+
+                    itemRef.get().addOnSuccessListener { document ->
+                        val ownerId = document.getDocumentReference("userRef")?.id
+                        if (ownerId != null) {
+                            firestore.collection("users").document(ownerId).get()
+                                .addOnSuccessListener { userDoc ->
+                                    val ownerToken = userDoc.getString("fcmToken")
+                                    if (ownerToken != null) {
+
+                                        getAccessTokenFromAssetsAsync("rentify-key.json") { accessToken ->
+                                            if (accessToken != null) {
+                                                // Once accessToken is received, send the notification
+                                                sendNotificationToOwner(ownerToken, "Your item has been rented!", accessToken)
+                                            } else {
+                                                // Handle the case where the access token is null (failed to fetch)
+                                                Toast.makeText(context, "Failed to get access token.", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+
+                                    }
+                                }
+                        }
+                    }
+
                     onComplete(true)
                 }
                 .addOnFailureListener { e ->
@@ -266,6 +332,75 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
         } else {
             Toast.makeText(context, "User not authenticated!", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    val SCOPES = listOf("https://www.googleapis.com/auth/firebase.messaging")
+    fun getAccessTokenFromAssetsAsync(serviceAccountFileName: String, onComplete: (String?) -> Unit) {
+        // Launch the coroutine in the background (IO context)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Access the service account JSON from assets
+                val inputStream: InputStream = context.assets.open(serviceAccountFileName)
+
+                // Load the credentials from the InputStream
+                val credentials = ServiceAccountCredentials.fromStream(inputStream)
+
+                // You don't need HttpTransportFactory.create here
+                val credentialsWithScopes = credentials.createScoped(SCOPES)
+
+                // Refresh the access token
+                val accessToken = credentialsWithScopes.refreshAccessToken()
+
+                // Call the completion callback with the access token on the main thread
+                withContext(Dispatchers.Main) {
+                    onComplete(accessToken.tokenValue)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+
+                // Call the completion callback with null on error
+                withContext(Dispatchers.Main) {
+                    onComplete(null)
+                }
+            }
+        }
+    }
+
+    // Function to send notification
+    fun sendNotificationToOwner(token: String, message: String, accessToken: String) {
+        val json = """
+        {
+          "message": {
+            "token": "$token",
+            "notification": {
+              "title": "Item Rented",
+              "body": "$message"
+            }
+          }
+        }
+    """.trimIndent()
+
+        val client = OkHttpClient()
+        val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("https://fcm.googleapis.com/v1/projects/rentify-89fc3/messages:send")
+            .addHeader("Authorization", "Bearer $accessToken")  // Use OAuth 2.0 Bearer token
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    println("Notification sent successfully")
+                } else {
+                    println("Error sending notification: ${response.body?.string()}")
+                }
+            }
+        })
     }
 
     fun fetchDatesFromItem(documentId: String?, onComplete: (List<String>) -> Unit) {
@@ -328,4 +463,23 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     }
 
 
+}
+
+class MyFirebaseMessagingService : FirebaseMessagingService() {
+    override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        super.onMessageReceived(remoteMessage)
+
+        remoteMessage.notification?.let {
+            // Display the notification
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationBuilder = NotificationCompat.Builder(this, "default_channel")
+                .setContentTitle(it.title)
+                .setContentText(it.body)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+            notificationManager.notify(0, notificationBuilder.build())
+        }
+    }
 }

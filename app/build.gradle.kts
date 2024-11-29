@@ -48,6 +48,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
         }
     }
 }
@@ -89,4 +93,14 @@ dependencies {
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation ("androidx.compose.material3:material3:1.3.1")
     implementation ("org.osmdroid:osmdroid-android:6.1.20")
+    implementation ("com.google.firebase:firebase-messaging:24.1.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation ("com.google.api-client:google-api-client:1.34.0")
+    implementation ("com.google.http-client:google-http-client-gson:1.40.1")
+    implementation ("com.google.oauth-client:google-oauth-client:1.34.0")
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.10.0")
+    implementation ("com.google.auth:google-auth-library-credentials:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
 }
