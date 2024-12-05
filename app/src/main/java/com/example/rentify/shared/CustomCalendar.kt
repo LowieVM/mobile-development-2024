@@ -165,8 +165,8 @@ fun CustomCalendar(
                             .size(40.dp)
                             .background(
                                 color = when {
-                                    isSelected -> MaterialTheme.colorScheme.inversePrimary
-                                    isRented -> MaterialTheme.colorScheme.inversePrimary
+                                    isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                    isRented -> MaterialTheme.colorScheme.primaryContainer
                                     isBeforeMinDate || isDisabled -> Color.LightGray // Disable previous dates
                                     else -> Color.Transparent
                                 },

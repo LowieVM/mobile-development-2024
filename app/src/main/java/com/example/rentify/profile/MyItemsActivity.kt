@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import com.example.rentify.database.FirebaseAuthManager
 import com.example.rentify.shared.CalendarAndItemsScreen
 import com.example.rentify.shared.NoItemsScreen
+import com.example.rentify.ui.theme.RentifyTheme
 
 class MyItemsActivity : ComponentActivity() {
     private lateinit var firebaseAuthManager: FirebaseAuthManager
@@ -26,20 +27,22 @@ class MyItemsActivity : ComponentActivity() {
         fetchItems()
 
         setContent {
-            val itemsState = items.observeAsState(emptyList()) // Observe items LiveData
+            RentifyTheme {
+                val itemsState = items.observeAsState(emptyList()) // Observe items LiveData
 
-            if (itemsState.value.isEmpty()) {
-                NoItemsScreen("Your items", "You have no items. Add items to view them here.", onBackPress = { finish() }) // Pass back action to composable
-            } else {
-                CalendarAndItemsScreen(
-                    title = "Your items",
-                    rentedItems = items,
-                    rentedDates = rentedDates,
-                    onFetchDatesForItem = { documentId ->
-                        fetchDatesForItem(documentId)
-                    },
-                    onBackPress = { finish() }
-                )
+                if (itemsState.value.isEmpty()) {
+                    NoItemsScreen("Your items", "You have no items. Add items to view them here.", onBackPress = { finish() }) // Pass back action to composable
+                } else {
+                    CalendarAndItemsScreen(
+                        title = "Your items",
+                        rentedItems = items,
+                        rentedDates = rentedDates,
+                        onFetchDatesForItem = { documentId ->
+                            fetchDatesForItem(documentId)
+                        },
+                        onBackPress = { finish() }
+                    )
+                }
             }
         }
     }

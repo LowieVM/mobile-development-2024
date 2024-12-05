@@ -46,6 +46,7 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                     val token = task.result
                     val user = mAuth.currentUser
                     user?.let {
+                        println("is user logged in token: $token")
                         firestore.collection("users").document(it.uid).update("fcmToken", token)
                     }
                 }
@@ -54,6 +55,26 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     }
 
     fun logoutUser() {
+        val currentUser = mAuth.currentUser
+        if (currentUser != null) {
+            // Clear the FCM token in Firestore
+            val userRef = firestore.collection("users").document(currentUser.uid)
+            userRef.update("fcmToken", null).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Delete the FCM token locally
+                    FirebaseMessaging.getInstance().deleteToken()
+                        .addOnCompleteListener {
+                            if (it.isSuccessful) {
+                                println("FCM token deleted successfully")
+                            } else {
+                                println("Failed to delete FCM token: ${it.exception?.message}")
+                            }
+                        }
+                } else {
+                    println("Failed to clear FCM token in Firestore: ${task.exception?.message}")
+                }
+            }
+        }
         mAuth.signOut()
     }
 
@@ -190,7 +211,6 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
     }
 
 
-
     fun fetchAllItems(onComplete: (List<Map<String, Any>>) -> Unit) {
         firestore.collection("items").get()
             .addOnSuccessListener { querySnapshot ->
@@ -210,7 +230,6 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
                 onComplete(emptyList())
             }
     }
-
 
 
     fun fetchUserItems(onComplete: (List<Map<String, Any>>) -> Unit) {
@@ -303,16 +322,18 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
 
                     itemRef.get().addOnSuccessListener { document ->
                         val ownerId = document.getDocumentReference("userRef")?.id
+                        val itemName = document.getString("itemName").toString()
                         if (ownerId != null) {
                             firestore.collection("users").document(ownerId).get()
                                 .addOnSuccessListener { userDoc ->
                                     val ownerToken = userDoc.getString("fcmToken")
                                     if (ownerToken != null) {
+                                        println(ownerToken)
 
                                         getAccessTokenFromAssetsAsync("rentify-key.json") { accessToken ->
                                             if (accessToken != null) {
                                                 // Once accessToken is received, send the notification
-                                                sendNotificationToOwner(ownerToken, "Your item has been rented!", accessToken)
+                                                sendNotificationToOwner(ownerToken, "Your item $itemName has been rented!", accessToken)
                                             } else {
                                                 // Handle the case where the access token is null (failed to fetch)
                                                 Toast.makeText(context, "Failed to get access token.", Toast.LENGTH_LONG).show()
@@ -466,6 +487,17 @@ class FirebaseAuthManager @Inject constructor(private val context: Context) {
 }
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
+    private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        val user = mAuth.currentUser
+        user?.let {
+            firestore.collection("users").document(it.uid).update("fcmToken", token)
+        }
+    }
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 

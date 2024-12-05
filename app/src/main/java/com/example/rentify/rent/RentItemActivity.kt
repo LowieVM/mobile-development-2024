@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.rentify.database.FirebaseAuthManager
 import com.example.rentify.shared.CustomCalendar
+import com.example.rentify.ui.theme.RentifyTheme
 
 class RentItemActivity : ComponentActivity() {
     private lateinit var firebaseAuthManager: FirebaseAuthManager
@@ -69,46 +70,48 @@ class RentItemActivity : ComponentActivity() {
 
 
         setContent {
-            RentItemScreen(
-                itemName = itemName ?: "Unknown Item",
-                itemPrice = itemPrice ?: "N/A",
-                itemDescription = itemDescription ?: "No description available.",
-                imageUrl = imageUrl ?: "",
-                documentId = documentId ?: "",
-                onBackPress = { finish() },
-                onRentItem = { documentId, dates ->
-                    if (currentUserId == ownerId) {
-                        // Show dialog if the current user is the owner
-                        // Show a confirmation dialog to warn the user that they are renting their own item
-                        val dialog = AlertDialog.Builder(this)
-                            .setTitle("Warning")
-                            .setMessage("You are the owner of this item. Are you sure you want to rent your own item?")
-                            .setPositiveButton("OK") { dialog, _ ->
-                                // Proceed with renting
-                                firebaseAuthManager.rentItem(documentId, dates) { success ->
-                                    if (success) {
-                                        finish()
+            RentifyTheme {
+                RentItemScreen(
+                    itemName = itemName ?: "Unknown Item",
+                    itemPrice = itemPrice ?: "N/A",
+                    itemDescription = itemDescription ?: "No description available.",
+                    imageUrl = imageUrl ?: "",
+                    documentId = documentId ?: "",
+                    onBackPress = { finish() },
+                    onRentItem = { documentId, dates ->
+                        if (currentUserId == ownerId) {
+                            // Show dialog if the current user is the owner
+                            // Show a confirmation dialog to warn the user that they are renting their own item
+                            val dialog = AlertDialog.Builder(this)
+                                .setTitle("Warning")
+                                .setMessage("You are the owner of this item. Are you sure you want to rent your own item?")
+                                .setPositiveButton("OK") { dialog, _ ->
+                                    // Proceed with renting
+                                    firebaseAuthManager.rentItem(documentId, dates) { success ->
+                                        if (success) {
+                                            finish()
+                                        }
                                     }
+                                    dialog.dismiss()
                                 }
-                                dialog.dismiss()
-                            }
-                            .setNegativeButton("Cancel") { dialog, _ ->
-                                dialog.dismiss()
-                            }
-                            .create()
+                                .setNegativeButton("Cancel") { dialog, _ ->
+                                    dialog.dismiss()
+                                }
+                                .create()
 
-                        dialog.show()
-                    } else {
-                        // Proceed with renting
-                        firebaseAuthManager.rentItem(documentId, dates) { success ->
-                            if (success) {
-                                finish()
+                            dialog.show()
+                        } else {
+                            // Proceed with renting
+                            firebaseAuthManager.rentItem(documentId, dates) { success ->
+                                if (success) {
+                                    finish()
+                                }
                             }
                         }
-                    }
-                },
-                disabledDates = disabledDates
-            )
+                    },
+                    disabledDates = disabledDates
+                )
+            }
         }
     }
 }

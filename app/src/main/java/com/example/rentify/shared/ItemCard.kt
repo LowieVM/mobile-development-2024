@@ -36,7 +36,7 @@ fun ItemCard(item: Map<String, Any>, isSelected: Boolean = false, onClick: () ->
                 if (isSelected) {
                     it.border(
                         width = 2.dp,
-                        color = MaterialTheme.colorScheme.inversePrimary,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = MaterialTheme.shapes.medium
                     )
                 } else {

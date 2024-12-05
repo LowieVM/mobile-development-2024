@@ -70,7 +70,7 @@ class HomeActivity : ComponentActivity() {
             // setting up the individual tabs
             val rentTab = TabBarItem(title = "Rent", selectedIcon = Icons.Filled.LocationOn, unselectedIcon = Icons.Outlined.LocationOn)
             val addTab = TabBarItem(title = "Add", selectedIcon = Icons.Filled.Add, unselectedIcon = Icons.Outlined.Add)
-            val profileTab = TabBarItem(title = "Profile", selectedIcon = Icons.Filled.Person, unselectedIcon = Icons.Outlined.Person, badgeAmount = 2)
+            val profileTab = TabBarItem(title = "Profile", selectedIcon = Icons.Filled.Person, unselectedIcon = Icons.Outlined.Person)
 
             // creating a list of all the tabs
             val tabBarItems = listOf(rentTab, addTab, profileTab)
